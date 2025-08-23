@@ -1,0 +1,29 @@
+{
+    "cli": {
+        "version": ">= 16.17.4",
+        "appVersionSource": "remote"
+    },
+    "build": {
+        "production": {
+            "autoIncrement": true,
+            "ios": {
+                "distribution": "store"
+            },
+            "android": {
+                "buildType": "app-bundle"
+            }
+        }
+    },
+    "submit": {
+        "production": {
+            "ios": {
+                "ascAppId": "id"
+            },
+            "android": {
+                "serviceAccountKeyPath": "./path-to.json",
+                "track": "internal"
+            }
+        }
+    }
+}
+
