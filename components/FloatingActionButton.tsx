@@ -7,6 +7,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
+import { logInfo, logDebug, addBreadcrumb } from '../config/logger.config';
 
 interface FloatingActionButtonProps {
     onPress: () => void;
@@ -21,8 +22,11 @@ const FloatingActionButton: React.FC<
     const rotateAnim = useRef(
         new Animated.Value(0)
     ).current;
+    
+    logDebug('🎈 FloatingActionButton component rendered', { visible });
     useEffect(() => {
         if (visible) {
+            logDebug('📈 FloatingActionButton showing with animation');
             Animated.spring(scaleAnim, {
                 toValue: 1,
                 tension: 50,
@@ -30,6 +34,7 @@ const FloatingActionButton: React.FC<
                 useNativeDriver: true,
             }).start();
         } else {
+            logDebug('📉 FloatingActionButton hiding with animation');
             Animated.spring(scaleAnim, {
                 toValue: 0,
                 tension: 50,
@@ -40,6 +45,9 @@ const FloatingActionButton: React.FC<
     }, [visible, scaleAnim]);
 
     const handlePress = () => {
+        logInfo('🎈 FloatingActionButton pressed');
+        addBreadcrumb('FloatingActionButton pressed', 'ui.interaction', 'info');
+        
         // Add a small rotation animation on press
         Animated.sequence([
             Animated.timing(rotateAnim, {

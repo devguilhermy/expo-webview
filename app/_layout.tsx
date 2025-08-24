@@ -2,12 +2,14 @@ import { Stack } from 'expo-router';
 import React from 'react';
 import { ThemeProvider } from '../contexts/ThemeContext';
 import ErrorBoundary from '../components/ErrorBoundary';
-import { initSentry, Sentry } from '../config/sentry.config';
+import { initLogger, logInfo } from '../config/logger.config';
 
-// Initialize Sentry before the app starts
-initSentry();
+// Initialize logger before the app starts
+initLogger();
+logInfo('🚀 App starting up...');
 
 function RootLayout() {
+    logInfo('📱 RootLayout component mounting...');
     return (
         <ErrorBoundary>
             <ThemeProvider>
@@ -17,6 +19,5 @@ function RootLayout() {
     );
 }
 
-// Wrap the entire app with Sentry for automatic instrumentation
-export default Sentry.wrap(RootLayout);
+export default RootLayout;
 

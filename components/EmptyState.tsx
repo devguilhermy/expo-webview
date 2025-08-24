@@ -7,6 +7,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
+import { logInfo, addBreadcrumb } from '../config/logger.config';
 
 interface EmptyStateProps {
     icon?: keyof typeof Ionicons.glyphMap;
@@ -24,6 +25,9 @@ const EmptyState: React.FC<EmptyStateProps> = ({
     onAction,
 }) => {
     const { theme } = useTheme();
+    
+    logInfo('📄 EmptyState component rendered', { title, hasAction: !!onAction });
+    addBreadcrumb(`EmptyState displayed: ${title}`, 'ui.component', 'info');
 
     return (
         <View style={[styles.container, { backgroundColor: theme.background }]}>
@@ -54,7 +58,11 @@ const EmptyState: React.FC<EmptyStateProps> = ({
                 {actionText && onAction && (
                     <TouchableOpacity
                         style={[styles.actionButton, { backgroundColor: theme.primary }]}
-                        onPress={onAction}
+                        onPress={() => {
+                            logInfo('🎯 EmptyState action triggered', { actionText });
+                            addBreadcrumb(`EmptyState action: ${actionText}`, 'ui.interaction', 'info');
+                            onAction();
+                        }}
                         accessible={true}
                         accessibilityLabel={actionText}
                         accessibilityHint="Executa ação para resolver o estado vazio"

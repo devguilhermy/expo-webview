@@ -8,20 +8,13 @@
             "autoIncrement": true,
             "ios": {
                 "distribution": "store"
-            },
-            "android": {
-                "buildType": "app-bundle"
             }
         }
     },
     "submit": {
         "production": {
             "ios": {
-                "ascAppId": "id"
-            },
-            "android": {
-                "serviceAccountKeyPath": "./path-to.json",
-                "track": "internal"
+                "ascAppId": "your-app-store-connect-app-id"
             }
         }
     }

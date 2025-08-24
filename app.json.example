@@ -1,6 +1,6 @@
 {
     "expo": {
-        "name": "App Mobile",
+        "name": "app-mobile",
         "slug": "app-mobile",
         "version": "1.0.0",
         "orientation": "portrait",
@@ -8,15 +8,6 @@
         "scheme": "mobile",
         "userInterfaceStyle": "automatic",
         "newArchEnabled": true,
-        "description": "Aplicativo moderno",
-        "keywords": [
-            "delivery",
-            "food",
-            "restaurant",
-            "comida",
-            "entrega",
-            "pedidos"
-        ],
         "splash": {
             "image": "./assets/images/splash-icon.png",
             "resizeMode": "contain",
@@ -25,29 +16,10 @@
         "assetBundlePatterns": ["**/*"],
         "ios": {
             "supportsTablet": true,
-            "bundleIdentifier": "com.letsdelivery.app",
-            "buildNumber": "1.0.0",
-            "infoPlist": {
-                "ITSAppUsesNonExemptEncryption": false,
-                "NSAppTransportSecurity": {
-                    "NSAllowsArbitraryLoads": true,
-                    "NSExceptionDomains": {
-                        "letsdelivery.app": {
-                            "NSExceptionAllowsInsecureHTTPLoads": true,
-                            "NSExceptionMinimumTLSVersion": "1.0",
-                            "NSIncludesSubdomains": true
-                        }
-                    }
-                }
-            }
+            "bundleIdentifier": "com.yourcompany.app",
+            "buildNumber": "1.0.0"
         },
         "android": {
-            "package": "com.letsdelivery.app",
-            "versionCode": 1,
-            "permissions": [
-                "INTERNET",
-                "ACCESS_NETWORK_STATE"
-            ],
             "adaptiveIcon": {
                 "foregroundImage": "./assets/images/adaptive-icon.png",
                 "backgroundColor": "#ffffff"
@@ -71,11 +43,10 @@
                 }
             ],
             [
-                "@sentry/react-native/expo", 
+                "expo-notifications",
                 {
-                    "organization": "org_id",
-                    "project": "project",
-                    "url": "https://sentry.io/"
+                    "icon": "./assets/notification-icon.png",
+                    "color": "#ffffff"
                 }
             ]
         ],
@@ -85,10 +56,10 @@
         "extra": {
             "router": {},
             "eas": {
-                "projectId": "project-id"
+                "projectId": ""
             }
         },
-        "owner": "dev"
+        "owner": ""
     }
 }
 

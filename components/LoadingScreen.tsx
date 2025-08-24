@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
+import { logInfo, logDebug, addBreadcrumb } from '../config/logger.config';
 
 interface LoadingScreenProps {
     message?: string;
@@ -23,7 +24,11 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({
     const scaleAnim = useRef(
         new Animated.Value(0.8)
     ).current;
+    
+    logInfo('⏳ LoadingScreen displayed', { message, showLogo });
+    addBreadcrumb(`LoadingScreen: ${message}`, 'ui.component', 'info');
     useEffect(() => {
+        logDebug('🎬 LoadingScreen animations starting');
         Animated.parallel([
             Animated.timing(fadeAnim, {
                 toValue: 1,
@@ -36,7 +41,9 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({
                 friction: 7,
                 useNativeDriver: true,
             }),
-        ]).start();
+        ]).start(() => {
+            logDebug('✨ LoadingScreen animations completed');
+        });
     }, [fadeAnim, scaleAnim]);
 
     return (
@@ -104,8 +111,11 @@ const LoadingDots: React.FC<{ color: string }> = ({
     const dot1 = useRef(new Animated.Value(0)).current;
     const dot2 = useRef(new Animated.Value(0)).current;
     const dot3 = useRef(new Animated.Value(0)).current;
+    
+    logDebug('⚪ LoadingDots component initialized');
 
     useEffect(() => {
+        logDebug('🎭 LoadingDots animation cycle starting');
         const animateDots = () => {
             const duration = 600;
             const delay = 200;
@@ -193,6 +203,9 @@ export const InlineLoading: React.FC<
     InlineLoadingProps
 > = ({ message = 'Carregando...', size = 'small' }) => {
     const { theme } = useTheme();
+    
+    logDebug('📏 InlineLoading displayed', { message, size });
+    addBreadcrumb(`InlineLoading: ${message}`, 'ui.component', 'info');
 
     return (
         <View style={styles.inlineContainer}>

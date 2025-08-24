@@ -5,6 +5,7 @@ import React, {
     useState,
 } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { logInfo, logError, logDebug, addBreadcrumb } from '../config/logger.config';
 
 export interface Theme {
     primary: string;
@@ -59,35 +60,52 @@ export const ThemeProvider: React.FC<{
 }> = ({ children }) => {
     const [isDark, setIsDark] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
+    
+    logInfo('🎨 ThemeProvider initialized');
+    addBreadcrumb('ThemeProvider initialized', 'system.init', 'info');
 
     useEffect(() => {
         loadTheme();
     }, []);
 
     const loadTheme = async () => {
+        logDebug('📖 Loading theme from storage...');
         try {
             const savedTheme = await AsyncStorage.getItem(
                 THEME_STORAGE_KEY
             );
             if (savedTheme !== null) {
                 setIsDark(savedTheme === 'dark');
+                logInfo(`🎨 Theme loaded: ${savedTheme} mode`);
+                addBreadcrumb(`Theme loaded: ${savedTheme}`, 'system.theme', 'info');
+            } else {
+                logInfo('🎨 No saved theme found, using default light mode');
             }
         } catch (error) {
+            logError('Theme loading failed', error as Error);
             console.warn('Erro ao carregar tema:', error);
         } finally {
             setIsLoading(false);
+            logDebug('🎨 Theme loading process completed');
         }
     };
 
     const toggleTheme = async () => {
+        const newTheme = !isDark;
+        const themeMode = newTheme ? 'dark' : 'light';
+        
+        logInfo(`🔄 Theme toggling to ${themeMode} mode`);
+        addBreadcrumb(`Theme changed to ${themeMode}`, 'user.action', 'info');
+        
         try {
-            const newTheme = !isDark;
             setIsDark(newTheme);
             await AsyncStorage.setItem(
                 THEME_STORAGE_KEY,
-                newTheme ? 'dark' : 'light'
+                themeMode
             );
+            logInfo(`💾 Theme saved: ${themeMode} mode`);
         } catch (error) {
+            logError('Theme saving failed', error as Error);
             console.warn('Erro ao salvar tema:', error);
         }
     };
@@ -106,6 +124,7 @@ export const ThemeProvider: React.FC<{
 export const useTheme = () => {
     const context = useContext(ThemeContext);
     if (context === undefined) {
+        logError('🚨 useTheme called outside of ThemeProvider', new Error('ThemeProvider context not found'));
         throw new Error(
             'useTheme deve ser usado dentro de um ThemeProvider'
         );

@@ -16,10 +16,12 @@ import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
 import { useTheme } from '../contexts/ThemeContext';
 import {
-    testSentryError,
-    testSentryNativeCrash,
-    addSentryBreadcrumb,
-} from '../config/sentry.config';
+    testError,
+    testNativeCrash,
+    addBreadcrumb,
+    logInfo,
+    logDebug,
+} from '../config/logger.config';
 
 const CONTACT_EMAIL =
     process.env.EXPO_PUBLIC_CONTACT_EMAIL || '';
@@ -50,10 +52,12 @@ const Sidebar: React.FC<SidebarProps> = ({
     const overlayOpacity = useRef(
         new Animated.Value(0)
     ).current;
+    
+    logDebug('🗂️ Sidebar component rendered', { visible });
     useEffect(() => {
         if (visible) {
             // Track sidebar opening
-            addSentryBreadcrumb(
+            addBreadcrumb(
                 'Sidebar opened',
                 'ui.interaction',
                 'info'
@@ -73,7 +77,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             ]).start();
         } else {
             // Track sidebar closing
-            addSentryBreadcrumb(
+            addBreadcrumb(
                 'Sidebar closed',
                 'ui.interaction',
                 'info'
@@ -95,17 +99,26 @@ const Sidebar: React.FC<SidebarProps> = ({
     }, [visible, slideAnim, overlayOpacity]);
 
     const handleSupportCall = () => {
+        logInfo('📞 Support call dialog opened');
+        addBreadcrumb('Support call dialog opened', 'ui.interaction', 'info');
+        
         Alert.alert(
             'Contatar Suporte',
             'Deseja ligar para o suporte?',
             [
-                { text: 'Cancelar', style: 'cancel' },
+                { text: 'Cancelar', style: 'cancel', onPress: () => {
+                    logInfo('❌ Support call cancelled by user');
+                }},
                 {
                     text: 'Ligar',
                     onPress: () => {
+                        logInfo('📞 Attempting to call support');
+                        addBreadcrumb('Support call initiated', 'user.action', 'info');
+                        
                         Linking.openURL(
                             SUPPORT_PHONE
-                        ).catch(() => {
+                        ).catch((error) => {
+                            logInfo('📞 Support call failed', { error: error.message });
                             Alert.alert(
                                 'Erro',
                                 'Não foi possível fazer a ligação'
@@ -118,20 +131,29 @@ const Sidebar: React.FC<SidebarProps> = ({
     };
 
     const handleExit = () => {
+        logInfo('🚪 Exit app dialog opened');
+        addBreadcrumb('Exit app dialog opened', 'ui.interaction', 'info');
+        
         Alert.alert(
             'Sair do App',
             'Tem certeza de que deseja sair?',
             [
-                { text: 'Cancelar', style: 'cancel' },
+                { text: 'Cancelar', style: 'cancel', onPress: () => {
+                    logInfo('❌ App exit cancelled by user');
+                }},
                 {
                     text: 'Sair',
                     style: 'destructive',
                     onPress: () => {
+                        logInfo('🚪 App exit confirmed by user');
+                        addBreadcrumb('App exit confirmed', 'user.action', 'info');
+                        
                         // Close sidebar first
                         onClose();
 
                         // Android exit - simple and straightforward
                         if (webViewRef?.current) {
+                            logInfo('🌐 Injecting WebView navigation script');
                             webViewRef.current
                                 .injectJavaScript(`
                                 try {
@@ -146,6 +168,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                         }
 
                         setTimeout(() => {
+                            logInfo('🚪 Exiting app...');
                             BackHandler.exitApp();
                         }, 200);
                     },
@@ -155,8 +178,8 @@ const Sidebar: React.FC<SidebarProps> = ({
     };
 
     const handleGoHome = () => {
-        // Track sidebar usage
-        addSentryBreadcrumb(
+        logInfo('🏠 Home navigation triggered from sidebar');
+        addBreadcrumb(
             'Sidebar menu item clicked: home',
             'ui.interaction',
             'info'
@@ -166,6 +189,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         onClose();
         // Navigate to homepage - assuming the initial URL is the homepage
         if (webViewRef?.current) {
+            logInfo('🌐 Injecting home navigation script to WebView');
             webViewRef.current.injectJavaScript(`
                 window.location.href = window.location.origin;
             `);
@@ -185,7 +209,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                 ? 'Modo Claro'
                 : 'Modo Escuro',
             onPress: () => {
-                addSentryBreadcrumb(
+                addBreadcrumb(
                     `Theme changed to: ${
                         theme.isDark ? 'light' : 'dark'
                     }`,
@@ -200,7 +224,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             icon: 'information-circle' as const,
             title: 'Sobre o App',
             onPress: () => {
-                addSentryBreadcrumb(
+                addBreadcrumb(
                     'Sidebar menu item clicked: about',
                     'ui.interaction',
                     'info'
@@ -212,7 +236,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             icon: 'call' as const,
             title: 'Suporte',
             onPress: () => {
-                addSentryBreadcrumb(
+                addBreadcrumb(
                     'Sidebar menu item clicked: support',
                     'ui.interaction',
                     'info'
@@ -227,7 +251,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                       icon: 'exit' as const,
                       title: 'Sair',
                       onPress: () => {
-                          addSentryBreadcrumb(
+                          addBreadcrumb(
                               'Sidebar menu item clicked: exit',
                               'ui.interaction',
                               'info'
@@ -239,19 +263,19 @@ const Sidebar: React.FC<SidebarProps> = ({
               ]
             : []),
 
-        // Development only - Sentry test buttons
+        // Development only - Test buttons
         ...(__DEV__
             ? [
                   {
                       icon: 'bug' as const,
-                      title: 'Test Sentry Error',
+                      title: 'Test Error',
                       onPress: () => {
-                          addSentryBreadcrumb(
-                              'Sidebar menu item clicked: test_sentry_error',
+                          addBreadcrumb(
+                              'Sidebar menu item clicked: test_error',
                               'ui.interaction',
                               'info'
                           );
-                          testSentryError();
+                          testError();
                       },
                       danger: true,
                   },
@@ -259,24 +283,23 @@ const Sidebar: React.FC<SidebarProps> = ({
                       icon: 'warning' as const,
                       title: 'Test Native Crash',
                       onPress: () => {
-                          addSentryBreadcrumb(
+                          addBreadcrumb(
                               'Sidebar menu item clicked: test_native_crash',
                               'ui.interaction',
                               'info'
                           );
                           Alert.alert(
                               'Test Native Crash',
-                              'This will crash the app for testing. Continue?',
+                              'This will test crash functionality. Continue?',
                               [
                                   {
                                       text: 'Cancel',
                                       style: 'cancel',
                                   },
                                   {
-                                      text: 'Crash App',
+                                      text: 'Test',
                                       style: 'destructive',
-                                      onPress:
-                                          testSentryNativeCrash,
+                                      onPress: testNativeCrash,
                                   },
                               ]
                           );

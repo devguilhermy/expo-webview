@@ -9,7 +9,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import * as Application from 'expo-application';
 import { useTheme } from '../contexts/ThemeContext';
-import { Sentry, addSentryBreadcrumb, setSentryContext, captureException } from '../config/sentry.config';
+import { addBreadcrumb, setContext, captureException, logError, logInfo } from '../config/logger.config';
 
 interface Props {
     children: ReactNode;
@@ -40,22 +40,23 @@ class ErrorBoundaryClass extends Component<Props, State> {
 
     public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
         console.error('ErrorBoundary caught an error:', error, errorInfo);
+        logError('🛡️ ErrorBoundary caught an error', error);
         
         this.setState({
             error,
             errorInfo,
         });
 
-        // Log to Sentry with additional context
-        this.logErrorToSentry(error, errorInfo);
+        // Log with additional context
+        this.logError(error, errorInfo);
     }
 
-    private logErrorToSentry = (error: Error, errorInfo: ErrorInfo) => {
+    private logError = (error: Error, errorInfo: ErrorInfo) => {
         // Add breadcrumb for error boundary trigger
-        addSentryBreadcrumb('Error Boundary Triggered', 'error-boundary', 'error');
+        addBreadcrumb('Error Boundary Triggered', 'error-boundary', 'error');
 
         // Set additional context for this error
-        setSentryContext('errorBoundary', {
+        setContext('errorBoundary', {
             componentStack: errorInfo.componentStack,
             errorBoundaryTimestamp: new Date().toISOString(),
             appVersion: Application.nativeApplicationVersion,
@@ -64,23 +65,22 @@ class ErrorBoundaryClass extends Component<Props, State> {
 
         // Capture the exception with additional context
         captureException(error, {
-            extra: {
-                errorInfo: {
-                    componentStack: errorInfo.componentStack,
-                    errorBoundaryLocation: 'React Error Boundary',
-                },
-                appState: {
-                    timestamp: new Date().toISOString(),
-                    nativeAppVersion: Application.nativeApplicationVersion,
-                    nativeBuildVersion: Application.nativeBuildVersion,
-                },
+            errorInfo: {
+                componentStack: errorInfo.componentStack,
+                errorBoundaryLocation: 'React Error Boundary',
+            },
+            appState: {
+                timestamp: new Date().toISOString(),
+                nativeAppVersion: Application.nativeApplicationVersion,
+                nativeBuildVersion: Application.nativeBuildVersion,
             },
         });
 
-        console.log('✅ Error reported to Sentry:', error.message);
+        logInfo('📝 Error details logged successfully');
     };
 
     private handleRestart = () => {
+        logInfo('🔄 User requested app restart from error boundary');
         this.setState({
             hasError: false,
             error: null,
@@ -119,7 +119,7 @@ Build: ${Application.nativeBuildVersion}
                         }
                         
                         // Add breadcrumb for user reporting action
-                        addSentryBreadcrumb('User manually reported error', 'user-action', 'info');
+                        addBreadcrumb('User manually reported error', 'user-action', 'info');
                     },
                 },
             ]
