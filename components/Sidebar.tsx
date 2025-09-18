@@ -1,27 +1,27 @@
-import React, { useState, useRef, useEffect } from 'react';
-import {
-    View,
-    Text,
-    StyleSheet,
-    TouchableOpacity,
-    Modal,
-    Animated,
-    Dimensions,
-    Alert,
-    Linking,
-    BackHandler,
-    Platform,
-} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
-import { useTheme } from '../contexts/ThemeContext';
+import React, { useEffect, useRef, useState } from 'react';
 import {
+    Alert,
+    Animated,
+    BackHandler,
+    Dimensions,
+    Linking,
+    Modal,
+    Platform,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+} from 'react-native';
+import {
+    addBreadcrumb,
+    logDebug,
+    logInfo,
     testError,
     testNativeCrash,
-    addBreadcrumb,
-    logInfo,
-    logDebug,
 } from '../config/logger.config';
+import { useTheme } from '../contexts/ThemeContext';
 
 const CONTACT_EMAIL =
     process.env.EXPO_PUBLIC_CONTACT_EMAIL || '';
@@ -196,6 +196,39 @@ const Sidebar: React.FC<SidebarProps> = ({
         }
     };
 
+    const handleDeleteAccount = () => {
+    logInfo('🗑 Account deletion dialog opened');
+    addBreadcrumb('Account deletion dialog opened', 'ui.interaction', 'info');
+    
+    Alert.alert(
+        'Excluir Conta',
+        'Tem certeza de que deseja excluir sua conta? Esta ação é irreversível.',
+        [
+            { text: 'Cancelar', style: 'cancel', onPress: () => {
+                logInfo('❌ Account deletion cancelled by user');
+            }},
+            {
+                text: 'Excluir',
+                style: 'destructive',
+                onPress: () => {
+                    logInfo('🗑 Account deletion confirmed by user');
+                    addBreadcrumb('Account deletion confirmed', 'user.action', 'info');
+                    
+                    // Close sidebar first
+                    onClose();
+
+                    if (webViewRef?.current) {
+                        logInfo('🌐 Navigating to account deletion page');
+                        webViewRef.current.injectJavaScript(`
+                            window.location.href = 'https://mercadovai.wdna.me/pagina/cancelamento-conta';
+                        `);
+                    }
+                },
+            },
+        ]
+    );
+};
+
     const menuItems = [
         {
             icon: 'home' as const,
@@ -237,12 +270,25 @@ const Sidebar: React.FC<SidebarProps> = ({
             title: 'Suporte',
             onPress: () => {
                 addBreadcrumb(
+                    'Sidebar menu item clicked: delete_account',
+                    'ui.interaction',
+                    'info'
+                );
+                handleDeleteAccount();
+            },
+        },
+        {
+            icon: 'trash-outline' as const,
+            title: 'Excluir conta',
+            onPress: () => {
+                addBreadcrumb(
                     'Sidebar menu item clicked: support',
                     'ui.interaction',
                     'info'
                 );
                 handleSupportCall();
             },
+            danger: true
         },
         // Only show "Sair" button on Android, as iOS discourages programmatic app termination
         ...(Platform.OS === 'android'

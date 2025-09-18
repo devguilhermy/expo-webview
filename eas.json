@@ -1,0 +1,29 @@
+{
+    "cli": {
+        "version": ">= 16.17.4",
+        "appVersionSource": "remote"
+    },
+    "build": {
+        "production": {
+            "autoIncrement": true,
+            "ios": {
+                "distribution": "store"
+            },
+            "android": {
+                "buildType": "app-bundle"
+            }
+        }
+    },
+    "submit": {
+        "production": {
+            "ios": {
+                "ascAppId": "6751122960"
+            },
+            "android": {
+                "serviceAccountKeyPath": "./lets-delivery.json",
+                "track": "internal"
+            }
+        }
+    }
+}
+
