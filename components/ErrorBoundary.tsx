@@ -1,15 +1,15 @@
-import React, { Component, ErrorInfo, ReactNode } from 'react';
-import {
-    View,
-    Text,
-    StyleSheet,
-    TouchableOpacity,
-    Alert,
-} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Application from 'expo-application';
+import React, { Component, ErrorInfo, ReactNode } from 'react';
+import {
+    Alert,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+} from 'react-native';
+import { addBreadcrumb, captureException, logError, logInfo, setContext } from '../config/logger.config';
 import { useTheme } from '../contexts/ThemeContext';
-import { addBreadcrumb, setContext, captureException, logError, logInfo } from '../config/logger.config';
 
 interface Props {
     children: ReactNode;
@@ -287,7 +287,7 @@ const styles = StyleSheet.create({
         minHeight: 52,
     },
     secondaryButton: {
-        backgroundColor: 'transparent',
+        backgroundColor: '#ffffff',
         borderWidth: 1,
     },
     buttonIcon: {

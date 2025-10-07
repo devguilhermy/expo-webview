@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Lets Delivery",
-    "slug": "lets-delivery",
+    "name": "Letsi",
+    "slug": "letsi-app",
     "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -55,7 +55,9 @@
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
         }
-      ]
+      ],
+      "expo-font",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true

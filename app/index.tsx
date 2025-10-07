@@ -12,10 +12,10 @@ import {
 	Text,
 	View,
 } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WebView, WebViewNavigation } from 'react-native-webview';
-import FloatingActionButton from '../components/FloatingActionButton';
 import LoadingScreen from '../components/LoadingScreen';
-import Sidebar from '../components/Sidebar';
+
 import {
 	addBreadcrumb,
 	captureException,
@@ -44,9 +44,9 @@ const CACHE_KEY_TIMESTAMP = 'WEBVIEW_CACHE_TIMESTAMP';
 export default function Index() {
 	logInfo('📱 Index component initializing...');
 	const { theme } = useTheme();
+	const insets = useSafeAreaInsets();
 	const webViewRef = useRef<WebView>(null);
 	const [canGoBack, setCanGoBack] = useState(false);
-	const [sidebarVisible, setSidebarVisible] = useState(false);
 
 	// Performance monitoring refs
 	const loadTransaction = useRef<any>(null);
@@ -309,13 +309,14 @@ export default function Index() {
 			logInfo('💾 Displaying cached content in offline mode');
 			addBreadcrumb('Cached content displayed', 'system.cache', 'info');
 			return (
-				<View
+				<SafeAreaView
 					style={[
 						styles.offlineRoot,
 						{
-							backgroundColor: theme.background,
+							backgroundColor: '#ffffff',
 						},
 					]}
+					edges={['bottom']}
 				>
 					<View
 						style={[
@@ -382,7 +383,7 @@ export default function Index() {
 						javaScriptEnabled
 						domStorageEnabled
 						injectedJavaScript={
-							disableZoomAndSelectionAndSnapshotJS
+							getDisableZoomAndSelectionAndSnapshotJS(insets.bottom)
 						}
 						onMessage={handleWebViewMessage}
 						pullToRefreshEnabled={true} // Allows pull-to-refresh
@@ -393,16 +394,7 @@ export default function Index() {
 						bounces={false}
 						overScrollMode={'never'}
 					/>
-					<FloatingActionButton
-						onPress={() => setSidebarVisible(true)}
-						visible={true}
-					/>
-					<Sidebar
-						visible={sidebarVisible}
-						onClose={() => setSidebarVisible(false)}
-						webViewRef={webViewRef}
-					/>
-				</View>
+				</SafeAreaView>
 			);
 		}
 		// No cache available fallback UI
@@ -468,24 +460,15 @@ export default function Index() {
 						/>
 					</View>
 				</View>
-				<FloatingActionButton
-					onPress={() => setSidebarVisible(true)}
-					visible={true}
-				/>
-				<Sidebar
-					visible={sidebarVisible}
-					onClose={() => setSidebarVisible(false)}
-					webViewRef={webViewRef}
-				/>
 			</View>
 		);
 	}
 
 	logInfo('🌐 App rendering in online mode - displaying main WebView');
 	addBreadcrumb('Main WebView rendered', 'webview', 'info');
-	
+
 	return (
-		<View style={{ flex: 1 }}>
+		<SafeAreaView style={{ flex: 1, backgroundColor: '#ffffff' }} edges={['bottom']}>
 			<WebView
 				ref={webViewRef}
 				style={styles.container}
@@ -557,7 +540,7 @@ export default function Index() {
 					}
 				}}
 				onLoadEnd={() => setIsLoading(false)} // Hide loading indicator when page loads
-				injectedJavaScript={disableZoomAndSelectionAndSnapshotJS} // Disable zoom and text selection
+				injectedJavaScript={getDisableZoomAndSelectionAndSnapshotJS(insets.bottom)} // Disable zoom and text selection
 				onMessage={handleWebViewMessage}
 				pullToRefreshEnabled={true} // Allows pull-to-refresh
 				scalesPageToFit={false} // Disable pinch-to-zoom
@@ -567,60 +550,39 @@ export default function Index() {
 				bounces={false}
 				overScrollMode={'never'}
 			/>
-
-			<FloatingActionButton
-				onPress={() => setSidebarVisible(true)}
-				visible={true}
-			/>
-
-			<Sidebar
-				visible={sidebarVisible}
-				onClose={() => setSidebarVisible(false)}
-				webViewRef={webViewRef}
-			/>
-		</View>
+		</SafeAreaView>
 	);
 }
 
-const BOTTOM_SAFE_AREA = Platform.OS === 'ios' ? 34 : 24; // Estimate for safe areas
+// Generate injected JavaScript for zoom/selection control and HTML snapshot
+const getDisableZoomAndSelectionAndSnapshotJS = (bottomInset: number) => `
+  if (!window.viewportConfigured) {
+    let meta = document.createElement('meta');
+    meta.setAttribute('name', 'viewport');
+    meta.setAttribute('content', 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0');
+    document.getElementsByTagName('head')[0].appendChild(meta);
 
-const disableZoomAndSelectionAndSnapshotJS = `
-  (function() {
-    try {
-      // Disable zoom
-      var existing = document.querySelector('meta[name="viewport"]');
-      if(!existing){
-        var meta = document.createElement('meta');
-        meta.name = 'viewport';
-        meta.content = 'width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no';
-        document.head.appendChild(meta);
-      }
-      // Disable selection
-      var style = document.createElement('style');
-      style.type = 'text/css';
-      style.innerHTML = 'body{-webkit-user-select:none;-webkit-touch-callout:none;-moz-user-select:none;-ms-user-select:none;user-select:none;}';
-      document.head.appendChild(style);
-      
-      // Add bottom padding to prevent overlap with floating elements
-      setTimeout(function(){
-        var bottomPadding = ${
-			BOTTOM_SAFE_AREA + 80
-		}; // 80px for floating button area
-        document.body.style.paddingBottom = bottomPadding + 'px';
-        document.body.style.boxSizing = 'border-box';
-      }, 100);
-      
-      // Post HTML snapshot after brief delay (allow dynamic content)
-      setTimeout(function(){
-        try {
-          var html = document.documentElement.outerHTML;
-          if (html && html.length < 5_000_000) { // crude guard against extremely large payloads
-            window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'HTML_SNAPSHOT', html: html }));
-          }
-        } catch (e) {}
-      }, 800);
-    } catch(e) {}
-  })();
+    // Disable selection
+    var style = document.createElement('style');
+    style.type = 'text/css';
+    style.innerHTML = 'body{-webkit-user-select:none;-webkit-touch-callout:none;-moz-user-select:none;-ms-user-select:none;user-select:none;}';
+    document.getElementsByTagName('head')[0].appendChild(style);
+
+    window.viewportConfigured = true;
+  }
+
+  // Post HTML snapshot after brief delay (allow dynamic content)
+  if (!window.snapshotScheduled) {
+    window.snapshotScheduled = true;
+    setTimeout(function(){
+      try {
+        var html = document.documentElement.outerHTML;
+        if (html && html.length < 5_000_000) {
+          window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'HTML_SNAPSHOT', html: html }));
+        }
+      } catch (e) {}
+    }, 800);
+  }
 `;
 
 const styles = StyleSheet.create({
