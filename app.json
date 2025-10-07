@@ -10,6 +10,8 @@
     "newArchEnabled": true,
     "description": "Aplicativo de delivery moderno e eficiente para conectar restaurantes, clientes e entregadores. Peça sua comida favorita com facilidade e acompanhe seu pedido em tempo real.",
     "primaryColor": "#FF6F00",
+    "privacy": "public",
+    "jsEngine": "hermes",
     "splash": {
       "image": "./assets/images/splash-icon.png",
       "resizeMode": "contain",
@@ -22,9 +24,15 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.letsdelivery.app",
       "buildNumber": "1.1.0",
+      "appStoreUrl": "https://apps.apple.com/app/id6751122960",
+      "config": {
+        "usesNonExemptEncryption": false
+      },
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "NSCameraUsageDescription": "This app uses the camera to scan QR codes for delivery verification."
+        "NSCameraUsageDescription": "This app uses the camera to scan QR codes for delivery verification.",
+        "NSLocationWhenInUseUsageDescription": "Precisamos da sua localização para encontrar restaurantes próximos e calcular o tempo de entrega.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Precisamos da sua localização para rastrear entregas em tempo real e fornecer atualizações precisas do pedido."
       }
     },
     "android": {
@@ -32,13 +40,16 @@
       "versionCode": 1,
       "permissions": [
         "INTERNET",
-        "ACCESS_NETWORK_STATE"
+        "ACCESS_NETWORK_STATE",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION"
       ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "playStoreUrl": "https://play.google.com/store/apps/details?id=com.letsdelivery.app"
     },
     "web": {
       "bundler": "metro",

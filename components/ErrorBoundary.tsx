@@ -92,38 +92,39 @@ class ErrorBoundaryClass extends Component<Props, State> {
         const { error, errorInfo } = this.state;
         if (!error) return;
 
-        const errorDetails = `
+        if (__DEV__) {
+            // In development, show full error details
+            const errorDetails = `
 Erro: ${error.message}
 Stack: ${error.stack}
 Component Stack: ${errorInfo?.componentStack}
 Versão: ${Application.nativeApplicationVersion}
 Build: ${Application.nativeBuildVersion}
-        `.trim();
+            `.trim();
 
-        Alert.alert(
-            'Reportar Erro',
-            'Deseja enviar os detalhes do erro para nossa equipe? (Já foi enviado automaticamente para análise)',
-            [
-                { text: 'Cancelar', style: 'cancel' },
-                {
-                    text: 'Ver Detalhes',
-                    onPress: () => {
-                        // Show error details (development only)
-                        if (__DEV__) {
+            Alert.alert(
+                'Reportar Erro',
+                'Deseja enviar os detalhes do erro para nossa equipe? (Já foi enviado automaticamente para análise)',
+                [
+                    { text: 'Cancelar', style: 'cancel' },
+                    {
+                        text: 'Ver Detalhes',
+                        onPress: () => {
                             Alert.alert('Detalhes do Erro', errorDetails);
-                        } else {
-                            Alert.alert(
-                                'Obrigado!',
-                                'O relatório de erro já foi enviado automaticamente. Nossa equipe irá investigar.'
-                            );
-                        }
-                        
-                        // Add breadcrumb for user reporting action
-                        addBreadcrumb('User manually reported error', 'user-action', 'info');
+                            addBreadcrumb('User manually reported error', 'user-action', 'info');
+                        },
                     },
-                },
-            ]
-        );
+                ]
+            );
+        } else {
+            // In production, hide technical details
+            Alert.alert(
+                'Obrigado!',
+                'O relatório de erro foi enviado automaticamente. Nossa equipe irá investigar e resolver o problema.',
+                [{ text: 'OK' }]
+            );
+            addBreadcrumb('User acknowledged error report', 'user-action', 'info');
+        }
     };
 
     public render() {
@@ -169,8 +170,8 @@ const ErrorBoundaryUI: React.FC<{
                 </Text>
 
                 <Text style={[styles.message, { color: theme.textSecondary }]}>
-                    Ocorreu um erro inesperado no aplicativo. 
-                    Tente reiniciar ou reporte o problema para nossa equipe.
+                    Ocorreu um erro inesperado no aplicativo.
+                    {__DEV__ ? ' Tente reiniciar ou reporte o problema para nossa equipe.' : ' Estamos trabalhando para resolver isso. Por favor, tente novamente.'}
                 </Text>
 
                 {__DEV__ && error && (

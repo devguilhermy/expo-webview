@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import * as Network from 'expo-network';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
 	Alert,
 	BackHandler,
@@ -52,6 +52,12 @@ export default function Index() {
 	const loadTransaction = useRef<any>(null);
 	const appStartTime = useRef(Date.now());
 
+	// Memoize injected JavaScript to avoid regenerating on every render
+	const injectedJS = useMemo(
+		() => getDisableZoomAndSelectionAndSnapshotJS(insets.bottom),
+		[insets.bottom]
+	);
+
 	// Add states:
 	const [isConnected, setIsConnected] = useState(true);
 	const [isLoading, setIsLoading] = useState(true);
@@ -65,7 +71,11 @@ export default function Index() {
 	} | null>(null);
 	const [relativeTimeLabel, setRelativeTimeLabel] = useState<string>('');
 
-	// Recompute relative time label immediately and every 60s when a cache timestamp exists
+	// Debounce timer for cache saves
+	const cacheSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+	// Recompute relative time label immediately and every 30s when cache is visible
+	// Only update when offline and cache is being displayed
 	useEffect(() => {
 		function updateLabel() {
 			if (cacheTimestamp) {
@@ -79,10 +89,12 @@ export default function Index() {
 			}
 		}
 		updateLabel();
-		if (!cacheTimestamp) return; // no interval needed
-		const id = setInterval(updateLabel, 5000);
+		// Only run interval if we're offline/showing cache AND have a timestamp
+		if (!cacheTimestamp || (!isConnected && !cachedHtml)) return;
+		// Update every 30s instead of 5s to reduce CPU usage
+		const id = setInterval(updateLabel, 30000);
 		return () => clearInterval(id);
-	}, [cacheTimestamp]);
+	}, [cacheTimestamp, isConnected, cachedHtml]);
 
 	// Initialize logger context and performance monitoring
 	useEffect(() => {
@@ -116,12 +128,50 @@ export default function Index() {
 		};
 	}, [theme]);
 
-	// Add useEffect for connectivity:
+	// Add useEffect for connectivity with event listeners
 	useEffect(() => {
-		checkConnection();
-		const interval = setInterval(checkConnection, 5000); // Poll every 5s
-		return () => clearInterval(interval);
-	}, []);
+		let isMounted = true;
+		let pollInterval: NodeJS.Timeout | null = null;
+
+		const checkConnectionIfMounted = async () => {
+			if (isMounted) {
+				await checkConnection();
+			}
+		};
+
+		// Initial check
+		checkConnectionIfMounted();
+
+		// Use Network state change listener for real-time updates
+		const subscription = Network.addNetworkStateListener((state) => {
+			if (isMounted) {
+				const connected = state.isConnected || false;
+				setIsConnected(connected);
+
+				logInfo(connected ? '🌐 Network connected' : '📶 Network disconnected');
+				addBreadcrumb(
+					`Network state changed: ${connected ? 'online' : 'offline'}`,
+					'connectivity',
+					'info'
+				);
+
+				// If we regain connection, clear offline error
+				if (connected && webErrorOffline) {
+					setWebErrorOffline(false);
+					setOfflineError(null);
+				}
+			}
+		});
+
+		// Fallback polling for devices that don't support listeners well (every 15s instead of 5s)
+		pollInterval = setInterval(checkConnectionIfMounted, 15000);
+
+		return () => {
+			isMounted = false;
+			subscription.remove();
+			if (pollInterval) clearInterval(pollInterval);
+		};
+	}, [webErrorOffline]);
 
 	async function checkConnection() {
 		try {
@@ -181,22 +231,31 @@ export default function Index() {
 
 	async function saveCache(html: string) {
 		if (!html || isSavingCache) return;
-		logInfo('💾 Starting cache save operation', { htmlLength: html.length });
-		try {
-			setIsSavingCache(true);
-			await AsyncStorage.setItem(CACHE_KEY_HTML, html);
-			const ts = new Date().toISOString();
-			await AsyncStorage.setItem(CACHE_KEY_TIMESTAMP, ts);
-			setCachedHtml(html);
-			setCacheTimestamp(ts);
-			logInfo('✅ Cache saved successfully', { timestamp: ts });
-			addBreadcrumb(`Cache saved (${html.length} chars)`, 'system.cache', 'info');
-		} catch (e) {
-			logInfo('❌ Cache save failed', { error: e });
-			console.warn('Failed to save cache', e);
-		} finally {
-			setIsSavingCache(false);
+
+		// Clear existing timer
+		if (cacheSaveTimerRef.current) {
+			clearTimeout(cacheSaveTimerRef.current);
 		}
+
+		// Debounce cache saves by 2 seconds to avoid excessive writes
+		cacheSaveTimerRef.current = setTimeout(async () => {
+			logInfo('💾 Starting cache save operation', { htmlLength: html.length });
+			try {
+				setIsSavingCache(true);
+				await AsyncStorage.setItem(CACHE_KEY_HTML, html);
+				const ts = new Date().toISOString();
+				await AsyncStorage.setItem(CACHE_KEY_TIMESTAMP, ts);
+				setCachedHtml(html);
+				setCacheTimestamp(ts);
+				logInfo('✅ Cache saved successfully', { timestamp: ts });
+				addBreadcrumb(`Cache saved (${html.length} chars)`, 'system.cache', 'info');
+			} catch (e) {
+				logInfo('❌ Cache save failed', { error: e });
+				console.warn('Failed to save cache', e);
+			} finally {
+				setIsSavingCache(false);
+			}
+		}, 2000);
 	}
 
 	const handleWebViewMessage = (event: any) => {
@@ -382,9 +441,7 @@ export default function Index() {
 						}}
 						javaScriptEnabled
 						domStorageEnabled
-						injectedJavaScript={
-							getDisableZoomAndSelectionAndSnapshotJS(insets.bottom)
-						}
+						injectedJavaScript={injectedJS}
 						onMessage={handleWebViewMessage}
 						pullToRefreshEnabled={true} // Allows pull-to-refresh
 						scalesPageToFit={false} // Disable pinch-to-zoom
@@ -540,8 +597,20 @@ export default function Index() {
 					}
 				}}
 				onLoadEnd={() => setIsLoading(false)} // Hide loading indicator when page loads
-				injectedJavaScript={getDisableZoomAndSelectionAndSnapshotJS(insets.bottom)} // Disable zoom and text selection
+				injectedJavaScript={injectedJS} // Disable zoom and text selection
 				onMessage={handleWebViewMessage}
+				onRenderProcessGone={(syntheticEvent) => {
+					// Android-specific: Handle WebView crash/renderer process gone
+					const { nativeEvent } = syntheticEvent;
+					logError('💥 WebView render process gone', new Error('WebView crashed'), {
+						didCrash: nativeEvent.didCrash,
+					});
+
+					// Automatically reload WebView on crash
+					if (webViewRef.current) {
+						webViewRef.current.reload();
+					}
+				}}
 				pullToRefreshEnabled={true} // Allows pull-to-refresh
 				scalesPageToFit={false} // Disable pinch-to-zoom
 				allowsBackForwardNavigationGestures={true} // Enable swipe gestures for navigation

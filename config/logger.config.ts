@@ -47,21 +47,25 @@ export const logDebug = (message: string, context?: LogContext) => {
 };
 
 /**
- * Log info message
+ * Log info message (only in development)
  */
 export const logInfo = (message: string, context?: LogContext) => {
-	log('info', message, context);
+	if (__DEV__) {
+		log('info', message, context);
+	}
 };
 
 /**
- * Log warning message
+ * Log warning message (only in development)
  */
 export const logWarning = (message: string, context?: LogContext) => {
-	log('warning', message, context);
+	if (__DEV__) {
+		log('warning', message, context);
+	}
 };
 
 /**
- * Log error message
+ * Log error message (always logged, even in production)
  */
 export const logError = (
 	message: string,
@@ -105,54 +109,62 @@ export const addBreadcrumb = (
 };
 
 /**
- * Capture an exception
+ * Capture an exception (always logged, even in production)
  */
 export const captureException = (error: Error, context?: LogContext) => {
 	logError('🐛 Captured exception', error, context);
 };
 
 /**
- * Capture a message
+ * Capture a message (only in development)
  */
 export const captureMessage = (
 	message: string,
 	level: LogLevel = 'info',
 	context?: LogContext
 ) => {
-	log(level, message, context);
+	if (__DEV__) {
+		log(level, message, context);
+	}
 };
 
 /**
- * Start a transaction (mock implementation)
+ * Start a transaction (mock implementation - only in development)
  */
 export const startTransaction = (name: string, op: string) => {
-	logDebug(`⏱️ Starting transaction: ${name} (${op})`);
+	if (__DEV__) {
+		logDebug(`⏱️ Starting transaction: ${name} (${op})`);
+	}
 
 	return {
 		setData: (key: string, value: any) => {
-			logDebug(`📊 Transaction data: ${key} = ${value}`);
+			if (__DEV__) logDebug(`📊 Transaction data: ${key} = ${value}`);
 		},
 		setTag: (key: string, value: string) => {
-			logDebug(`🏷️ Transaction tag: ${key} = ${value}`);
+			if (__DEV__) logDebug(`🏷️ Transaction tag: ${key} = ${value}`);
 		},
 		finish: () => {
-			logDebug(`✅ Finished transaction: ${name}`);
+			if (__DEV__) logDebug(`✅ Finished transaction: ${name}`);
 		},
 	};
 };
 
 /**
- * Set tag (no-op for simple logging)
+ * Set tag (only in development)
  */
 export const setTag = (key: string, value: string) => {
-	logDebug(`🏷️ Tag: ${key} = ${value}`);
+	if (__DEV__) {
+		logDebug(`🏷️ Tag: ${key} = ${value}`);
+	}
 };
 
 /**
- * Set context (no-op for simple logging)
+ * Set context (only in development)
  */
 export const setContext = (key: string, context: LogContext) => {
-	logDebug(`📋 Context: ${key}`, context);
+	if (__DEV__) {
+		logDebug(`📋 Context: ${key}`, context);
+	}
 };
 
 /**
